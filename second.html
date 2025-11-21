@@ -1,0 +1,659 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Bharath Sanskrihti - Interactive India</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/geodata/indiaLow.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <style>
+        /* --- General Styling --- */
+        html, body {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff;
+            scroll-behavior: smooth;
+        }
+
+        /* --- Welcome Section Styling --- */
+        #welcome-container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background-color: #ffffff;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        #welcome-container h1 {
+            color: #007bff;
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            font-weight: 800;
+        }
+
+        #welcome-container p {
+            max-width: 600px;
+            font-size: 1.2em;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        #scroll-hint {
+            margin-top: 30px;
+            font-size: 1.1em;
+            color: #555;
+            font-style: italic;
+        }
+
+        /* --- Map Section Styling --- */
+        #map-section {
+            width: 100%;
+            height: 90vh;
+            padding-top: 50px;
+        }
+
+        #chartdiv {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- Map Controls (State Name Box) Styling --- */
+        #controls {
+            position: absolute;
+            top: calc(100vh + 20px);
+            left: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            width: 280px;
+            text-align: center;
+            transition: top 0.3s;
+        }
+
+        #stateName {
+            margin-top: 0;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #0066cc;
+            padding: 5px;
+            border-bottom: 2px solid #ddd;
+            margin-bottom: 15px;
+        }
+
+        /* View More Button */
+        #view-more-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+        }
+
+        #view-more-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        /* --- State Details Modal --- */
+        #state-details-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #state-details-content {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        #state-details-header {
+            background: linear-gradient(135deg, #007bff, #0056b3);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #state-details-header h2 {
+            margin: 0;
+            font-size: 2em;
+        }
+
+        #state-details-body {
+            padding: 25px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .detail-section {
+            margin-bottom: 25px;
+        }
+
+        .detail-section h3 {
+            color: #007bff;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+            margin-bottom: 15px;
+        }
+
+        .keywords-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .keyword-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #007bff;
+        }
+
+        .keyword-item h4 {
+            margin: 0 0 8px 0;
+            color: #333;
+        }
+
+        .keyword-item p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        #close-modal {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        #close-modal:hover {
+            background: #c82333;
+            transform: translateY(-2px);
+        }
+
+        /* --- Chatbot Toggle CSS --- */
+        #chat-toggle-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 101;
+            width: 60px;
+            height: 60px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 30px;
+            line-height: 60px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s;
+        }
+        #chat-toggle-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* --- Chatbot Container CSS --- */
+        #chatbot-container {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 300px;
+            height: 450px;
+            z-index: 100;
+            background: #f7f7f7;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+        }
+        #chatbot-header {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border-top-left-radius: 9px;
+            border-top-right-radius: 9px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #chatbot-header p {
+            margin: 0;
+            font-size: 0.9em;
+            font-weight: normal;
+        }
+        #chatbot-messages {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: white;
+        }
+        #chatbot-input-area {
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            display: flex;
+        }
+        #chatbot-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+        #chatbot-send {
+            padding: 8px 12px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .message {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 0.9em;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #e9e9eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-container">
+        <h1>Bharath Sanskrihti</h1>
+        <p>
+            Welcome to the cultural hub of India! Scroll down to interact with the map and use the integrated Chatbot (click the 💬 icon) to discover fascinating details about the customs, arts, and festivals of each state.
+        </p>
+        <p id="scroll-hint">
+            Scroll Down to the Interactive Map
+        </p>
+    </div>
+
+    <div id="map-section">
+        <div id="controls">
+            <div id="stateName">Click a state to see its name here</div>
+            <button id="view-more-btn" style="display: none;">View More Details</button>
+        </div>
+        <div id="chartdiv"></div>
+    </div>
+
+    <!-- State Details Modal -->
+    <div id="state-details-modal">
+        <div id="state-details-content">
+            <div id="state-details-header">
+                <h2 id="modal-state-name">State Name</h2>
+            </div>
+            <div id="state-details-body">
+                <div class="detail-section">
+                    <h3>Cultural Overview</h3>
+                    <p id="modal-full-info">Loading cultural information...</p>
+                </div>
+                <div class="detail-section">
+                    <h3>Traditions & Highlights</h3>
+                    <div id="modal-keywords" class="keywords-grid">
+                        <!-- Keywords will be populated here -->
+                    </div>
+                </div>
+            </div>
+            <button id="close-modal">Close</button>
+        </div>
+    </div>
+
+    <div id="chatbot-container">
+        <div id="chatbot-header">
+            AI CHATBOT<p>(BHARATH SANSKRITHI)</p>
+        </div>
+        <div id="chatbot-messages">
+            <div class="message bot-message"><p>Hello!</p>I am your AI Chatbot, How can I help you with the culture and traditions of India?</div>
+        </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Ask a question..." onkeydown="if(event.key === 'Enter') document.getElementById('chatbot-send').click()">
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+    <div id="chat-toggle-button">💬</div>
+
+    <script>
+        // --- 1. Chatbot Data (Extended with more states) ---
+        const detailedStateData = {
+            "karnataka": {
+                full_info: "Karnataka is a hub of art, history, and culture, known for its deep connection to Carnatic music and vibrant folk arts. The grandest tradition is the 10-day Mysore Dasara, celebrated with a spectacular procession (Jambu Savari) and the illumination of the Mysore Palace. The coastal regions thrive on Yakshagana, a powerful, all-night folk theatre.",
+                keywords: {
+                    "dasara": "Mysore Dasara is Karnataka's state festival (Nada Habba). It celebrates the victory of Goddess Chamundeshwari over the demon Mahishasura. The rituals include the royal darbar and the grand Vijaya Dashami procession.",
+                    "yakshagana": "Yakshagana is a famous traditional folk art form of Karnataka's coastal districts. It's a theatre combining dance, music, dialogue, elaborate costumes, and stage techniques.",
+                    "kori rotti": "Kori Rotti is a popular Mangalorean dish consisting of crispy rice bread served with rich, coconut-based chicken curry.",
+                    "pilinalike": "Traditional folk dance characterized by energetic movements and vibrant costumes, often depicting tiger-like movements.",
+                    "mysore": "Known for the grand Mysore Palace, Dasara festival, and rich cultural heritage including traditional music and crafts.",
+                    "mangalore": "Coastal city known for beautiful beaches, delicious seafood, and traditional Yakshagana performances.",
+                    "ragi mudde": "Traditional staple food made from finger millet flour, served with spicy sambar or curry."
+                }
+            },
+            "kerala": {
+                full_info: "Kerala, known as 'God's Own Country,' is famous for its harmonious blend of art, nature, and tradition. The primary festival is Onam, a harvest celebration featuring boat races and elaborate feasts. The classical dance-drama Kathakali and martial art Kalaripayattu define its artistic heritage.",
+                keywords: {
+                    "onam": "Harvest festival celebrating King Mahabali's return with flower carpets, snake boat races, and grand vegetarian feasts.",
+                    "kathakali": "Classical dance-drama noted for elaborate make-up, colorful costumes, and detailed gestures.",
+                    "theyyam": "Ritual dance form performed in temples, characterized by vibrant costumes and spiritual significance.",
+                    "backwaters": "Network of lagoons and lakes parallel to the Arabian Sea coast, famous for houseboat cruises."
+                }
+            },
+            "maharashtra": {
+                full_info: "Maharashtra's culture is dynamic, influenced by Maratha empire history and vibrant public celebrations. Ganesh Chaturthi is celebrated with massive processions. The folk dance Lavani and traditional attire are iconic cultural elements.",
+                keywords: {
+                    "ganesh chaturthi": "Major festival celebrating Lord Ganesha's birth with clay idols and ceremonial immersions.",
+                    "lavani": "Folk dance combining traditional song and dance, performed to Dholki beats.",
+                    "puran poli": "Sweet flatbread stuffed with lentil and jaggery filling, popular during festivals.",
+                    "pune": "Cultural capital known for historical sites, educational institutions, and traditional festivals."
+                }
+            },
+            "tamil nadu": {
+                full_info: "Tamil Nadu is renowned for its rich Dravidian culture, classical arts, and grand temple architecture. The Pongal festival marks harvest season, while Bharatanatyam represents its classical dance heritage.",
+                keywords: {
+                    "pongal": "Four-day harvest festival dedicated to the Sun God, featuring special rice dishes.",
+                    "bharatanatyam": "Classical dance form known for fixed upper torso, bent legs, and intricate footwork.",
+                    "madurai": "Cultural capital famous for Meenakshi Amman Temple and rich historical significance.",
+                    "filter coffee": "Traditional South Indian coffee brewing method producing strong, aromatic coffee."
+                }
+            },
+            "odisha": {
+                full_info: "Odisha, on India's eastern coast, is known for classical dance forms and ancient temples. The grand Rath Yatra in Puri and Odissi dance represent its cultural richness alongside exquisite handicrafts.",
+                keywords: {
+                    "rath yatra": "Major festival in Puri featuring grand chariot processions of deities.",
+                    "odissi": "Ancient classical dance form characterized by fluid movements and sculpturesque poses.",
+                    "pakhala": "Traditional fermented rice dish served with yogurt and vegetables, popular in summer.",
+                    "chhau dance": "Vigorous folk dance combining martial arts, acrobatics, and storytelling."
+                }
+            },
+            "jammu and kashmir": {
+                full_info: "Jammu and Kashmir, 'Paradise on Earth,' blends Central Asian and Indian cultural influences. Celebrations include Eid and Lohri, while Kashmiri handicrafts and Wazwan cuisine define its heritage.",
+                keywords: {
+                    "eid": "Significant Muslim festival marking Ramadan's end with prayers and celebrations.",
+                    "wazwan": "Traditional multi-course meal featuring rich dishes like Rogan Josh and Gushtaba.",
+                    "srinagar": "Famous for Dal Lake, houseboats, Mughal gardens, and Pashmina shawls.",
+                    "phiran": "Traditional long woolen cloak worn during winter months for warmth."
+                }
+            },
+            "assam": {
+                full_info: "Assam in Northeast India is renowned for tea gardens, wildlife, and vibrant festivals. Bihu celebrates the agricultural cycle, while unique silk varieties and Kaziranga National Park highlight its natural wealth.",
+                keywords: {
+                    "bihu": "Important festival celebrated thrice yearly marking the agricultural cycle.",
+                    "assam tea": "Globally renowned black tea variety known for strong flavor and bright color.",
+                    "silk weaving": "Traditional craft producing Muga (golden) and Eri (soft) silk varieties.",
+                    "kaziranga": "UNESCO World Heritage Site famous for one-horned rhinoceros population."
+                }
+            },
+            "rajasthan": {
+                full_info: "Rajasthan, the 'Land of Kings,' is famous for its royal heritage, desert landscapes, and vibrant culture. Folk music, dance, and grand palaces reflect its historical significance.",
+                keywords: {
+                    "ghoomar": "Traditional folk dance performed by women during festivals and celebrations.",
+                    "dal bati churma": "Classic Rajasthani meal of lentil curry, wheat balls, and sweet crushed bread.",
+                    "jaipur": "Pink City known for historic forts, palaces, and vibrant markets.",
+                    "pushkar camel fair": "Annual livestock and cultural fair featuring camel trading and competitions."
+                }
+            },
+            "gujarat": {
+                full_info: "Gujarat is known for its entrepreneurial spirit, colorful festivals, and rich textile heritage. Navratri celebrations and traditional crafts like Bandhani represent its cultural identity.",
+                keywords: {
+                    "navratri": "Nine-night festival featuring traditional Garba and Dandiya Raas dances.",
+                    "bandhani": "Traditional tie-dye textile art creating intricate patterns on fabrics.",
+                    "dhokla": "Steamed fermented snack made from rice and chickpea flour.",
+                    "rann of kutch": "Seasonal salt marsh desert hosting cultural festivals and craft exhibitions."
+                }
+            }
+        };
+
+        // --- 2. Chatbot Functions ---
+        function appendMessage(sender, text) {
+            const messagesDiv = document.getElementById('chatbot-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(sender + '-message');
+            messageElement.innerHTML = `<p>${text}</p>`;
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function getBotResponse(input) {
+            const normalizedInput = input.toLowerCase().trim();
+            let response = null;
+
+            for (const stateName in detailedStateData) {
+                const stateData = detailedStateData[stateName];
+                
+                if (normalizedInput.includes(stateName)) {
+                    const displayStateName = stateName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                    return `Here is a detailed overview of the traditions of <strong>${displayStateName}</strong>: ${stateData.full_info}`;
+                }
+                
+                for (const keyword in stateData.keywords) {
+                    if (normalizedInput.includes(keyword)) {
+                        const keywordInfo = stateData.keywords[keyword];
+                        const displayStateName = stateName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                        const displayKeyword = keyword.charAt(0).toUpperCase() + keyword.slice(1);
+                        return `The tradition you asked about, <strong>${displayKeyword}</strong>, is famous in <strong>${displayStateName}</strong>. Detail: ${keywordInfo}`;
+                    }
+                }
+            }
+
+            if (normalizedInput.includes("hello") || normalizedInput.includes("hi")) {
+                response = "Hello! I'm here to share the beautiful traditions of India. Ask me about a state (like Kerala) or a specific tradition (like Kathakali or Lavani).";
+            } else if (normalizedInput.includes("who are you") || normalizedInput.includes("what can you do")) {
+                response = "I am the Traditions Chatbot, and I can provide detailed information on the customs, festivals, art forms, and even famous foods of India's states. Try clicking on the map too!";
+            } else if (normalizedInput.includes("traditions of india")) {
+                response = "India is a land of incredible diversity! I know about several states. Just type the name of a state you want to know about, or a specific local tradition.";
+            }
+
+            if (response === null) {
+                const allKeywords = Object.values(detailedStateData).flatMap(data => Object.keys(data.keywords));
+                const suggestedKeywords = allKeywords.slice(0, 5).join(', ');
+                response = `I'm sorry, I couldn't find a detailed match for that. Please try asking about a state (like <strong>Karnataka</strong> or <strong>Assam</strong>) or a specific tradition (like <strong>${suggestedKeywords}</strong>).`;
+            }
+            
+            return response;
+        }
+
+        function sendMessage() {
+            const inputElement = document.getElementById('chatbot-input');
+            const userText = inputElement.value.trim();
+
+            if (userText === "") return;
+
+            appendMessage('user', userText);
+
+            setTimeout(() => {
+                const botText = getBotResponse(userText);
+                appendMessage('bot', botText);
+            }, 500);
+
+            inputElement.value = '';
+        }
+
+        // 3. Toggle Chatbot Function
+        function toggleChatbot() {
+            const chatbotContainer = document.getElementById('chatbot-container');
+            if (chatbotContainer.style.display === 'none' || chatbotContainer.style.display === '') {
+                chatbotContainer.style.display = 'flex';
+            } else {
+                chatbotContainer.style.display = 'none';
+            }
+        }
+
+        // 4. State Details Modal Functions
+        let currentState = '';
+
+        function showStateDetails(stateName) {
+            const key = stateName.toLowerCase();
+            currentState = key;
+            
+            if (detailedStateData[key]) {
+                const stateData = detailedStateData[key];
+                const displayStateName = stateName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+                
+                // Update modal content
+                document.getElementById('modal-state-name').textContent = displayStateName;
+                document.getElementById('modal-full-info').textContent = stateData.full_info;
+                
+                // Clear and populate keywords
+                const keywordsContainer = document.getElementById('modal-keywords');
+                keywordsContainer.innerHTML = '';
+                
+                for (const keyword in stateData.keywords) {
+                    const keywordItem = document.createElement('div');
+                    keywordItem.className = 'keyword-item';
+                    keywordItem.innerHTML = `
+                        <h4>${keyword.charAt(0).toUpperCase() + keyword.slice(1)}</h4>
+                        <p>${stateData.keywords[keyword]}</p>
+                    `;
+                    keywordsContainer.appendChild(keywordItem);
+                }
+                
+                // Show modal
+                document.getElementById('state-details-modal').style.display = 'flex';
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('state-details-modal').style.display = 'none';
+        }
+
+        // 5. Attach event listeners
+        document.getElementById('chatbot-send').addEventListener('click', sendMessage);
+        document.getElementById('chat-toggle-button').addEventListener('click', toggleChatbot);
+        document.getElementById('view-more-btn').addEventListener('click', function() {
+            if (currentState) {
+                showStateDetails(currentState);
+            }
+        });
+        document.getElementById('close-modal').addEventListener('click', closeModal);
+
+        // Close modal when clicking outside content
+        document.getElementById('state-details-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        // --- 6. AmCharts Map Logic ---
+        am5.ready(function() {
+            var root = am5.Root.new("chartdiv");
+            root.setThemes([am5themes_Animated.new(root)]);
+
+            var chart = root.container.children.push(am5map.MapChart.new(root, {
+                panX: "rotateX",
+                panY: "none",
+                projection: am5map.geoMercator()
+            }));
+
+            var polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
+                geoJSON: am5geodata_indiaLow,
+                exclude: ["IN-LD", "IN-AN"]
+            }));
+
+            polygonSeries.mapPolygons.template.setAll({
+                fill: am5.color(0x3B82F6),
+                stroke: am5.color(0xffffff),
+                strokeWidth: 0.5,
+                tooltipText: "{name}",
+                interactive: true,
+                cursorOverStyle: "pointer"
+            });
+
+            polygonSeries.mapPolygons.template.states.create("active", {
+                fill: am5.color(0x000000), 
+                fillOpacity: 0.2, 
+                transitionDuration: 50
+            });
+            
+            polygonSeries.mapPolygons.template.states.create("default", {
+                fill: am5.color(0x3B82F6),
+                transitionDuration: 500
+            });
+
+            polygonSeries.mapPolygons.template.events.on("click", function(ev) {
+                var dataContext = ev.target.dataItem.dataContext;
+                var stateName = dataContext.name || "Unknown State";
+                var polygon = ev.target;
+                
+                const displayStateName = stateName.split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+                // Update controls
+                document.getElementById("stateName").innerHTML = `State Clicked:<br><strong>${displayStateName}</strong>`;
+                document.getElementById("view-more-btn").style.display = 'block';
+                currentState = stateName;
+                
+                // Apply visual effect
+                polygon.states.apply("active");
+                setTimeout(() => {
+                    polygon.states.apply("default");
+                }, 200);
+
+                // Chatbot notification
+                const key = stateName.toLowerCase();
+                let botText = `You clicked on <strong>${displayStateName}</strong>. Click "View More Details" for comprehensive information!`;
+                
+                setTimeout(() => {
+                    appendMessage('bot', botText);
+                }, 100);
+            });
+
+            var pointSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
+            var locations = {
+                delhi: { latitude: 28.6139, longitude: 77.2090, name: "New Delhi" },
+                mumbai: { latitude: 19.0760, longitude: 72.8777, name: "Mumbai" },
+                bengaluru: { latitude: 12.9716, longitude: 77.5946, name: "Bengaluru" }
+            };
+            for (let loc in locations) {
+                pointSeries.pushDataItem({
+                    latitude: locations[loc].latitude,
+                    longitude: locations[loc].longitude,
+                    name: locations[loc].name
+                });
+            }
+        });
+    </script>
+</body>
+</html>
