@@ -1,0 +1,397 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Interactive India Map - Click States with Detailed Keyword Chatbot</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/map.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/geodata/indiaLow.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+    <style>
+        /* CSS copied from your prompt */
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #chartdiv {
+            width: 100%;
+            height: 90vh;
+        }
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 5px #aaa;
+            /* Added fixed width for the simpler box */
+            width: 250px; 
+            text-align: center;
+        }
+        /* REMOVED CSS FOR SELECT AND BUTTONS */
+        #stateName {
+            margin-top: 0px; /* Moved to the very top */
+            font-size: 1.1em;
+            font-weight: bold;
+            color: #0066cc;
+            padding: 5px;
+            border-bottom: 2px solid #ddd;
+        }
+        /* --- Chatbot Toggle CSS --- */
+        #chat-toggle-button {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 101;
+            width: 60px;
+            height: 60px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            font-size: 30px;
+            line-height: 60px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s;
+        }
+        #chat-toggle-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* --- Chatbot Specific CSS --- */
+        #chatbot-container {
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 300px;
+            height: 450px;
+            z-index: 100;
+            background: #f7f7f7;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            display: none;
+            flex-direction: column;
+        }
+        #chatbot-header {
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border-top-left-radius: 9px;
+            border-top-right-radius: 9px;
+            text-align: center;
+            font-weight: bold;
+        }
+        #chatbot-messages {
+            flex-grow: 1;
+            padding: 10px;
+            overflow-y: auto;
+            background-color: white;
+        }
+        #chatbot-input-area {
+            padding: 10px;
+            border-top: 1px solid #ccc;
+            display: flex;
+        }
+        #chatbot-input {
+            flex-grow: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-right: 5px;
+        }
+        #chatbot-send {
+            padding: 8px 12px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .message {
+            margin-bottom: 8px;
+            padding: 6px 10px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+        .user-message {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .bot-message {
+            background-color: #e9e9eb;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="chatbot-container">
+        <div id="chatbot-header">
+            AI CHATBOT<p>(BHARATH SANSKRITHI)</p>
+        </div>
+        <div id="chatbot-messages">
+            <div class="message bot-message"><p>Hello!</p>I am your AI Chatbot,How can i help you with!</div>
+        </div>
+        <div id="chatbot-input-area">
+            <input type="text" id="chatbot-input" placeholder="Ask a question..." onkeydown="if(event.key === 'Enter') document.getElementById('chatbot-send').click()">
+            <button id="chatbot-send">Send</button>
+        </div>
+    </div>
+    <div id="chat-toggle-button">💬</div>
+    
+    <div id="controls">
+        <div id="stateName">Click a state to see its name here</div>
+        </div>
+
+    <div id="chartdiv"></div>
+
+    <script>
+        // 1. Chatbot Data
+        const detailedStateData = {
+            // --- KARNATAKA ---
+            "karnataka": {
+                full_info: "Karnataka is a hub of art, history, and culture, known for its deep connection to Carnatic music and vibrant folk arts. The grandest tradition is the 10-day Mysore Dasara, celebrated with a spectacular procession (Jambu Savari) and the illumination of the Mysore Palace. The coastal regions thrive on Yakshagana, a powerful, all-night folk theatre.",
+                keywords: {
+                    "dasara": "Mysore Dasara is Karnataka's state festival (Nada Habba). It celebrates the victory of Goddess Chamundeshwari over the demon Mahishasura. The rituals include the royal darbar and the grand Vijaya Dashami procession.",
+                    "yakshagana": "Yakshagana is a famous traditional folk art form of Karnataka's coastal districts. It's a theatre combining dance, music, dialogue, elaborate costumes (like huge headgear), and stage techniques, typically enacting episodes from the Hindu epics.",
+                    "kori rotti": "Kori Rotti, meaning 'chicken and dry bread,' is a popular and spicy Mangalorean dish from coastal Karnataka. It consists of a thin, crispy rice bread (rotti) served with a rich, coconut-based chicken curry (kori gassi).",
+                    "pilinalike":" Pilinalike is a traditional folk dance of Karnataka, particularly popular in the coastal regions. It is performed during festivals and special occasions, characterized by energetic movements and vibrant costumes, often depicting tiger-like movements.",
+                     "mysore": "Known for the grand Mysore Palace, the Dasara festival, and rich cultural heritage including traditional music, dance, and crafts.",
+                     "mangalore":" Mangalore, a coastal city in Karnataka, is known for its diverse culture, beautiful beaches, and delicious seafood. It is also famous for its traditional Yakshagana performances and the historic St. Aloysius Chapel.",
+                      "chikmagalur":" Chikmagalur is renowned for its coffee plantations, scenic hills, and the Mullayanagiri peak, the highest point in Karnataka. It is also known for its trekking trails and serene environment.",
+                      "belur":" Belur is renowned for its exquisite Hoysala architecture, particularly the Chennakesava Temple, which showcases intricate carvings and sculptures. It is a significant cultural and historical site in Karnataka.",
+                      "shimoga":" Shimoga, also known as Shivamogga, is famous for its natural beauty, waterfalls like Jog Falls, and rich cultural heritage. It is a gateway to the Western Ghats and has a strong tradition of folk arts and music.",
+                       "ragi mudde":" Ragi Mudde is a traditional staple food of Karnataka made from finger millet flour. It is prepared by cooking the flour with water to form soft, round balls, typically served with spicy sambar or curry.",
+                       "jola rotti":" Jola Rotti is a traditional flatbread made from jowar (sorghum) flour, commonly consumed in Karnataka. It is usually served with chutneys, sambar, or vegetable curries."
+                }
+            },
+            // --- KERALA ---
+            "kerala": {
+                full_info: "Kerala, known as 'God's Own Country,' is famous for its harmonious blend of art, nature, and tradition. The primary festival is Onam, a four-day harvest celebration featuring boat races (Vallamkali) and the elaborate Sadya feast. The classical dance-drama Kathakali and the ancient martial art Kalaripayattu define its artistic heritage.",
+                keywords: {
+                    "onam": "Onam is Kerala's harvest festival, celebrating the mythical return of King Mahabali. Key traditions include Pookalam (flower carpets), Vallamkali (snake boat races), and the grand Sadya (vegetarian feast).",
+                    "kathakali": "Kathakali is one of the major forms of Indian classical dance. It is a 'story play' noted for the elaborate make-up, colourful costumes, detailed gestures (mudras), and well-defined body movements.",
+                }
+            },
+            // --- MAHARASHTRA ---
+            "maharashtra": {
+                full_info: "Maharashtra's culture is dynamic, heavily influenced by the Maratha empire history and vibrant public celebrations. The core festival is Ganesh Chaturthi, celebrated with massive public processions and temporary idols (pandals). The folk dance Lavani and the traditional attire, the nine-yard saree, are iconic.",
+                keywords: {
+                    "ganesh chaturthi": "This is Maharashtra's biggest festival, celebrating the birth of Lord Ganesha. It involves installing clay idols in homes and public pandals, followed by a ceremonial immersion (Visarjan) after 1, 3, 5, 7, or 10 days.",
+                    "lavani": "Lavani is a popular genre of folk dance in Maharashtra, traditionally performed by women. It is a combination of traditional song and dance, particularly performed to the beats of the Dholki."
+                }
+            },
+            // Add all 28 states here
+              "tamilnadu": {
+              full_info: "Tamil Nadu is renowned for its rich Dravidian culture, classical arts, and grand temple architecture. The Pongal festival marks the harvest season with traditional rituals and feasts. Bharatanatyam, one of the oldest classical dance forms, originated here, along with the vibrant Tamil literature and music traditions.",
+               keywords: {
+               "pongal": "Pongal is a four-day harvest festival celebrated in Tamil Nadu, dedicated to the Sun God. It involves cooking a special dish called 'Pongal' made from newly harvested rice, along with rituals to thank nature for its bounty.",
+               "bharatanatyam": "Bharatanatyam is a major form of Indian classical dance that originated in Tamil Nadu. It is known for its fixed upper torso, bent legs, intricate footwork, and sophisticated sign language based on gestures of hands, eyes, and face muscles.",
+              "madurai": "Often called the 'cultural capital', it is famous for the Meenakshi Amman Temple and the city's rich history.known for the Meenakshi Amman Temple and Rameshwaram, the historical site of Mahabalipuram, the hill stations of Ooty and Kodaikanal, and the capital city Chennai."
+               }
+        },
+          "odisha": {
+        full_info: "Odisha, located on the eastern coast of India, is known for its rich cultural heritage, classical dance forms, and ancient temples. The state celebrates the grand Rath Yatra festival in Puri, where deities are taken out in a chariot procession. Odissi, one of the oldest classical dance forms, originated here, along with exquisite handicrafts and traditional cuisine.",
+        keywords: {
+            "rath yatra": "Rath Yatra is a major festival in Odisha, particularly in Puri, where the deities Jagannath, Balabhadra, and Subhadra are taken out in a grand chariot procession. Devotees pull the chariots through the streets, symbolizing the journey of the deities.",
+            "odissi": "Odissi is one of the oldest classical dance forms of India, originating from Odisha. It is characterized by its fluid movements, sculpturesque poses, and intricate footwork, often depicting stories from Hindu mythology.",
+            "pakhala": "Pakhala is a traditional dish from Odisha made by fermenting cooked rice in water, often served with yogurt, fried or mashed vegetables, and various side dishes. It is especially popular during the summer months for its cooling properties.",
+            "chhau dance": "Chhau dance is a traditional folk dance form from Odisha, known for its vigorous movements and elaborate masks. It combines martial arts, acrobatics, and storytelling, often depicting episodes from epics like the Ramayana and Mahabharata.",
+            "bhubaneswar": "Bhubaneswar, the historic Konark Sun Temple, the sacred Jagannath Temple in Puri, and the large Chilika Lake, a major wetland ecosystem."
+        }
+      },
+        };
+
+        // 2. Chatbot Functions
+        function appendMessage(sender, text) {
+            const messagesDiv = document.getElementById('chatbot-messages');
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
+            messageElement.classList.add(sender + '-message');
+            messageElement.innerHTML = text; 
+            messagesDiv.appendChild(messageElement);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function getBotResponse(input) {
+            const normalizedInput = input.toLowerCase().trim();
+            let response = null;
+
+            // 1. Check for specific keywords
+            for (const stateName in detailedStateData) {
+                const stateData = detailedStateData[stateName];
+                
+                // Check if the user is asking specifically about this state
+                if (normalizedInput.includes(stateName)) {
+                    return Here is a detailed overview of the traditions of ${stateName.toUpperCase()}: ${stateData.full_info};
+                }
+                
+                // Check if the input contains a known keyword for this state
+                for (const keyword in stateData.keywords) {
+                    if (normalizedInput.includes(keyword)) {
+                        const keywordInfo = stateData.keywords[keyword];
+                        return The tradition you asked about, ${keyword.toUpperCase()}, is a famous tradition of ${stateName.toUpperCase()}. Detail: ${keywordInfo};
+                    }
+                }
+            }
+
+            // 2. Handle simple greetings/generic queries
+            if (normalizedInput.includes("hello") || normalizedInput.includes("hi")) {
+                response = "Hello! I'm here to share the beautiful traditions of India. Ask me about a state (like Kerala) or a specific tradition (like Kathakali or Lavani).";
+            } else if (normalizedInput.includes("who are you") || normalizedInput.includes("what can you do")) {
+                response = "I am the Traditions Chatbot, and I can provide detailed information on the customs, festivals, art forms, and even famous foods of India's states.";
+            } else if (normalizedInput.includes("traditions of india")) {
+                response = "India is a land of incredible diversity! I know about 28 states. Just type the name of a state you want to know about, or a specific local tradition.";
+            }
+
+            // 3. Default response
+            if (response === null) {
+                response = "I'm sorry, I couldn't find a detailed match for that specific tradition or state. Please try asking about a state (like Karnataka) or a specific tradition (like Yakshagana).";
+            }
+            
+            return response;
+        }
+
+        function sendMessage() {
+            const inputElement = document.getElementById('chatbot-input');
+            const userText = inputElement.value.trim();
+
+            if (userText === "") return;
+
+            // 1. Display user message
+            appendMessage('user', userText);
+
+            // 2. Get and display bot response (with a slight delay for effect)
+            setTimeout(() => {
+                const botText = getBotResponse(userText);
+                appendMessage('bot', botText);
+            }, 500);
+
+            // 3. Clear the input
+            inputElement.value = '';
+        }
+
+        // 3. Toggle Chatbot Function
+        function toggleChatbot() {
+            const chatbotContainer = document.getElementById('chatbot-container');
+            if (chatbotContainer.style.display === 'none' || chatbotContainer.style.display === '') {
+                chatbotContainer.style.display = 'flex';
+            } else {
+                chatbotContainer.style.display = 'none';
+            }
+        }
+
+        // 4. Attach event listeners
+        document.getElementById('chatbot-send').addEventListener('click', sendMessage);
+        document.getElementById('chat-toggle-button').addEventListener('click', toggleChatbot);
+
+
+        // 5. Existing amCharts code with fade-on-click logic
+        am5.ready(function() {
+            // Create root and chart
+            var root = am5.Root.new("chartdiv");
+            root.setThemes([am5themes_Animated.new(root)]);
+
+            var chart = root.container.children.push(am5map.MapChart.new(root, {
+                panX: "rotateX",
+                panY: "none",
+                projection: am5map.geoMercator()
+            }));
+
+            // Create polygon series for India map
+            var polygonSeries = chart.series.push(am5map.MapPolygonSeries.new(root, {
+                geoJSON: am5geodata_indiaLow
+            }));
+
+            // ----------------------------------------------------
+            // --- FADE EFFECT IMPLEMENTATION (amCharts States) ---
+            // ----------------------------------------------------
+
+            polygonSeries.mapPolygons.template.setAll({
+                // Default fill is handled by the Animated theme (color is preserved)
+                stroke: am5.color(0xffffff), // White border
+                strokeWidth: 0.5,
+                tooltipText: "{name}"
+            });
+
+            // Define the 'active' state for the flash effect
+            polygonSeries.mapPolygons.template.states.create("active", {
+                // Semi-transparent black overlay
+                fill: am5.color(0x000000), 
+                fillOpacity: 0.2, 
+                transitionDuration: 50 // Fast transition when applying the state
+            });
+            
+            // Customize the transition when the state is removed (the fade out)
+            polygonSeries.mapPolygons.template.states.create("default", {
+                transitionDuration: 500 // 500ms fade out to the original color
+            });
+
+
+            // Add zoom control
+            // Zoom control removed as per user request to remove buttons/dropdowns from the box
+            // chart.set("zoomControl", am5map.ZoomControl.new(root, {}));
+
+            // Add event: when state (polygon) is clicked
+            polygonSeries.mapPolygons.template.events.on("click", function(ev) {
+                var dataContext = ev.target.dataItem.dataContext;
+                var stateName = dataContext.name || "Unknown State";
+                var polygon = ev.target; // Reference to the clicked polygon
+                
+                // CHANGE: Display the clicked state name clearly at the top
+                document.getElementById("stateName").innerHTML = State Clicked:<br><strong>${stateName}</strong>;
+                
+                // Apply the 'active' state to the clicked polygon (Flash in)
+                polygon.states.apply("active");
+                
+                // Remove the 'active' state after a short delay (Flash out/Fade)
+                setTimeout(() => {
+                    polygon.states.apply("default");
+                }, 200);
+
+
+                // Chatbot message generation (does not auto-open the chat)
+                const key = stateName.toLowerCase();
+                let botText = You clicked on ${stateName}. To learn about its traditions, click the 💬 icon and ask me!;
+                
+                if (detailedStateData[key]) {
+                    botText += ` For example, you could ask about: ${Object.keys(detailedStateData[key].keywords).join(', ')}.`;
+                }
+
+                // Post message to the chat log (only visible if the chat is open)
+                setTimeout(() => {
+                    appendMessage('bot', botText);
+                }, 100);
+            });
+
+            // Add markers (locations) - Kept for reference but not linked to controls
+            var pointSeries = chart.series.push(am5map.MapPointSeries.new(root, {}));
+            var locations = {
+                delhi: { latitude: 28.6139, longitude: 77.2090 },
+                mumbai: { latitude: 19.0760, longitude: 72.8777 },
+                bengaluru: { latitude: 12.9716, longitude: 77.5946 }
+            };
+            for (let loc in locations) {
+                pointSeries.pushDataItem({
+                    latitude: locations[loc].latitude,
+                    longitude: locations[loc].longitude,
+                    name: loc
+                });
+            }
+
+            // REMOVED ALL CONTROL LOGIC (Zoom, Navigate, States, Locations) 
+            // AS PER USER REQUEST TO REMOVE ALL BUTTONS/DROPDOWNS
+
+        });
+    </script>
+</body>
+</html>
